@@ -66,6 +66,7 @@ def process_full_pipeline():
         has_quit = any(word in row['review_clean'] for word in QUIT_KEYWORDS)
         if row['rating'] <= 4 and has_se and has_quit: return 1
         if row['rating'] <= 3 and has_se: return 1
+        if row['rating'] <= 3 and has_quit: return 1
         if row['rating'] <= 2: return 1
         return 0
 
@@ -82,6 +83,7 @@ def process_full_pipeline():
     return df, tfidf, rf
 
 df, tfidf_vec, rf_model = process_full_pipeline()
+
 
 # ui
 st.set_page_config(page_title="Drug DSS Dashboard", layout="wide")
