@@ -44,11 +44,11 @@ QUIT_KEYWORDS = [
 @st.cache_resource
 def process_full_pipeline():
 
-    train_url = "https://drive.google.com/uc?export=download&id=1YjYdadSPFH4g9gjRUVKiU3C7frtAot1X"
-    test_url = "https://drive.google.com/uc?export=download&id=1w5a5Hil2iLn7Yf1Og8Tz6qZnu_gR2EQ3"
+    train_url = "https://drive.google.com/uc?export=download&id=19DwE3-BC82awdo045yGgkhlmxkwOCGwf"
+    test_url = "https://drive.google.com/uc?export=download&id=1Rvp9BF_Btwxix0uEklmANJibwEOv_zNW"
     
-    train = pd.read_csv(train_url)
-    test = pd.read_csv(test_url)
+    train = pd.read_parquet(train_url)
+    test = pd.read_parquet(test_url)
     
     df = pd.concat([train, test], axis=0).reset_index(drop=True)
     
