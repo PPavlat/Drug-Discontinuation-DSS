@@ -101,81 +101,117 @@ df, tfidf_vec, rf_model, f1_val, cm_matrix = train_brain(raw_df)
 st.set_page_config(page_title="Drug DSS Dashboard", layout="wide")
 st.title("Medication Discontinuation Decision Support System (DSS)")
 
-# Metric Section for Performance
-st.header("Requirement 5: Performance Evaluation")
-m1, m2, m3 = st.columns(3)
-m1.metric("Model F1-Score", f"{f1_val:.2f}")
-m2.metric("Total Records Processed", len(df))
-m3.metric("Data Source", "Cloud Parquet")
+st.header("1. Dataset Overview: Review Popularity")
+top_drugs = df['drugName'].value_counts().head(15)
+fig_counts, ax_counts = plt.subplots(figsize=(10, 5))
+top_drugs.plot(kind='bar', ax=ax_counts, color='teal')
+ax_counts.set_title("Top 15 Drugs by Number of Reviews")
+st.pyplot(fig_counts)
 
-with st.expander("View Confusion Matrix (Reliability Check)"):
-    fig_cm, ax_cm = plt.subplots(figsize=(5, 4))
+
+st.header("2. Global Predictors of Discontinuation")
+importances = rf_model.feature_importances_
+feature_names = tfidf_vec.get_feature_names_out().tolist() + ['usefulCount']
+top_indices = np.argsort(importances)[-10:]
+
+fig_imp, ax_imp = plt.subplots()
+ax_imp.barh([feature_names[i] for i in top_indices], [importances[i] for i in top_indices], color='orange')
+st.pyplot(fig_imp)
+
+
+st.divider()
+st.header("3. Drug-Specific Discontinuation & Sentiment Analysis")
+drug_list = sorted(df['drugName'].unique())
+selected_drug = st.selectbox("Select a Drug to see Discontinuation Likelihood & Sentiment Results:", drug_list)
+
+
+drug_data = df[df['drugName'] == selected_drug].copy()
+drug_data['discontinued'] = drug_data['pred_discontinued']
+
+
+drug_data['sentiment'] = drug_data['review'].apply(lambda x: analyzer.polarity_scores(x)['compound'])
+avg_sentiment = drug_data['sentiment'].mean()
+likelihood = drug_data['discontinued'].mean()
+
+
+col1, col2, col3, col4 = st.columns(4)
+col1.metric("Total Reviews", len(drug_data))
+col2.metric("Avg Patient Rating", f"{drug_data['rating'].mean():.1f}/10")
+col3.metric("Discontinuation Risk", f"{likelihood:.1%}")
+col4.metric("Avg Sentiment Score", f"{avg_sentiment:.2f}")
+
+
+st.write(f"### Sentiment Distribution for {selected_drug}")
+fig_sent, ax_sent = plt.subplots(figsize=(8, 3))
+ax_sent.hist(drug_data['sentiment'], bins=20, color='mediumpurple', edgecolor='black')
+ax_sent.set_title(f"Sentiment Range: -1 (Negative) to +1 (Positive)")
+st.pyplot(fig_sent)
+
+# resultt text
+if likelihood > 0.3 or avg_sentiment < -0.1:
+    st.error(f"HIGH RISK: {selected_drug} shows a {likelihood:.1%} discontinuation rate and a negative sentiment trend.")
+else:
+    st.success(f"LOW RISK: {selected_drug} shows high treatment adherence and positive patient sentiment.")
+
+# custom review
+st.divider()
+st.header("4. Bonus: Custom Review Risk Assessment")
+user_text = st.text_area("Paste a patient review here to get a likelihood prediction:")
+user_useful = st.number_input("How many 'Useful' votes does this review have?", 0, 1000, 0)
+
+if st.button("Predict Discontinuation Risk"):
+    if user_text:
+        processed_text = re.sub(r'[^a-zA-Z\s]', '', user_text.lower())
+        text_vec = tfidf_vec.transform([processed_text])
+        final_input = hstack([text_vec, np.array([[user_useful]])])
+        
+        prob = rf_model.predict_proba(final_input)[0][1]
+        user_sentiment = analyzer.polarity_scores(user_text)['compound']
+        
+        st.subheader(f"Results for Custom Input")
+        st.write(f"**Calculated Sentiment:** {user_sentiment:.2f}")
+        st.write(f"**Discontinuation Probability:** {prob:.1%}")
+        
+        if prob > 0.5:
+            st.error("Model predicts a HIGH likelihood of the patient stopping this medication.")
+        else:
+            st.success("Model predicts a LOW likelihood of discontinuation.")
+
+# evaluation
+st.divider()
+st.header("5. Model Performance Evaluation")
+
+col_acc1, col_acc2 = st.columns([1, 2])
+
+with col_acc1:
+    st.metric("Model F1-Score", f"{f1_val:.2f}")
+    st.write("""
+    **Why F1-Score?** In clinical datasets, 'Discontinued' cases are often much rarer than 'Continued' cases. 
+    The $F_1$-score is a more reliable metric than simple accuracy because it balances 
+    precision and recall, ensuring we aren't missing high-risk patients.
+    """)
+
+with col_acc2:
+    st.subheader("Confusion Matrix")
+    
+    fig_cm, ax_cm = plt.subplots(figsize=(6, 4))
     sns.heatmap(cm_matrix, annot=True, fmt='d', cmap='Blues', ax=ax_cm,
                 xticklabels=['Continued', 'Discontinued'], 
                 yticklabels=['Continued', 'Discontinued'])
-    ax_cm.set_ylabel('True Label')
-    ax_cm.set_xlabel('Predicted Label')
+    ax_cm.set_ylabel('Actual Status')
+    ax_cm.set_xlabel('Predicted Status')
     st.pyplot(fig_cm)
 
-st.divider()
 
-# Requirement 6 & Bonus: Community Impact
-st.header("Community Impact & Sentiment Reliability")
-st.write("This metric weights sentiment by the community 'Helpfulness' score using a logarithmic scale: $Sentiment \times \ln(usefulCount + 1)$")
+st.divider()
+st.header("6. Community Impact & Data Reliability")
+st.write("Metric: $Sentiment \times \ln(usefulCount + 1)$")
+
 
 df['sentiment'] = df['review'].apply(lambda x: analyzer.polarity_scores(x)['compound'])
 df['community_impact'] = df['sentiment'] * np.log1p(df['usefulCount'])
 
-col_left, col_right = st.columns(2)
-
-with col_left:
-    st.subheader("Global Predictors (Feature Importance)")
-    importances = rf_model.feature_importances_
-    feature_names = tfidf_vec.get_feature_names_out().tolist() + ['usefulCount']
-    top_indices = np.argsort(importances)[-10:]
-    fig_imp, ax_imp = plt.subplots()
-    ax_imp.barh([feature_names[i] for i in top_indices], [importances[i] for i in top_indices], color='orange')
-    st.pyplot(fig_imp)
-
-with col_right:
-    st.subheader("Top 'Red Flag' Reviews (High Community Agreement)")
-    red_flags = df.sort_values(by='community_impact', ascending=True).head(5)
-    st.dataframe(red_flags[['drugName', 'condition', 'sentiment', 'usefulCount', 'community_impact']])
-
-st.divider()
-
-# Drug-Specific Deep Dive
-st.header("Drug-Specific Analysis")
-drug_list = sorted(df['drugName'].unique())
-selected_drug = st.selectbox("Select a Drug:", drug_list)
-
-drug_data = df[df['drugName'] == selected_drug]
-likelihood = drug_data['pred_discontinued'].mean()
-avg_sent = drug_data['sentiment'].mean()
-
-c1, c2, c3 = st.columns(3)
-c1.metric("Discontinuation Risk", f"{likelihood:.1%}")
-c2.metric("Avg Patient Rating", f"{drug_data['rating'].mean():.1f}/10")
-c3.metric("Avg Sentiment", f"{avg_sent:.2f}")
-
-if likelihood > 0.3:
-    st.error(f"WARNING: {selected_drug} shows a high risk of patient discontinuation based on clinical keywords.")
-else:
-    st.success(f"ADHERENCE: {selected_drug} shows a low risk of discontinuation.")
-
-# Custom Prediction
-st.divider()
-st.header("Bonus: Custom Patient Review Assessment")
-user_text = st.text_area("Paste a patient review here:")
-user_useful = st.number_input("Useful Count:", 0, 1000, 0)
-
-if st.button("Analyze Risk"):
-    if user_text:
-        processed = re.sub(r'[^a-zA-Z\s]', '', user_text.lower())
-        vec = tfidf_vec.transform([processed])
-        inp = hstack([vec, np.array([[user_useful]])])
-        prob = rf_model.predict_proba(inp)[0][1]
-        
-        st.write(f"**Discontinuation Probability:** {prob:.1%}")
-        if prob > 0.5: st.error("High Risk of Discontinuation")
-        else: st.success("Low Risk of Discontinuation")
+st.subheader("Top 'Red Flag' Reviews (High Community Agreement)")
+st.write("These reviews have high negative sentiment and have been verified as 'Useful' by many other patients.")
+red_flags = df.sort_values(by='community_impact', ascending=True).head(5)
+st.table(red_flags[['drugName', 'condition', 'sentiment', 'usefulCount', 'community_impact']])
