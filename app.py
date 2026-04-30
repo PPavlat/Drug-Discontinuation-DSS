@@ -89,6 +89,8 @@ def train_brain(df):
     y_pred = rf.predict(X_test)
     f1 = f1_score(y_test, y_pred)
     cm = confusion_matrix(y_test, y_pred)
+    df['model_pred'] = rf.predict(X_final)
+    df['model_prob'] = rf.predict_proba(X_final)[:, 1]
     
     return df, tfidf, rf, f1, cm
 
@@ -131,25 +133,32 @@ with col2:
 
 
 st.divider()
-st.header("Drug-Specific Discontinuaton & Sentiment Analysis")
+st.header("Drug-Specific Discontinuation & Sentiment Analysis")
 drug_list = sorted(df['drugName'].unique())
-selected_drug = st.selectbox("Select a Drug to see Discontinuation Likelihood & Sentiment Results:", drug_list)
-
+selected_drug = st.selectbox("Select a Drug:", drug_list)
 
 drug_data = df[df['drugName'] == selected_drug].copy()
-drug_data['discontinued'] = drug_data['pred_discontinued']
 
 
-drug_data['sentiment'] = drug_data['review'].apply(lambda x: analyzer.polarity_scores(x)['compound'])
-avg_sentiment = drug_data['sentiment'].mean()
-likelihood = drug_data['discontinued'].mean()
+actual_risk = drug_data['pred_discontinued'].mean()  
+model_risk = drug_data['model_prob'].mean()        
+avg_sentiment = drug_data['review'].apply(lambda x: analyzer.polarity_scores(x)['compound']).mean()
 
 
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Total Reviews", len(drug_data))
-col2.metric("Avg Patient Rating", f"{drug_data['rating'].mean():.1f}/10")
-col3.metric("Discontinuation Risk", f"{likelihood:.1%}")
-col4.metric("Avg Sentiment Score", f"{avg_sentiment:.2f}")
+col2.metric("Actual Risk (Rules)", f"{actual_risk:.1%}")
+col3.metric("Predicted Risk (AI)", f"{model_risk:.1%}", 
+            delta=f"{model_risk - actual_risk:+.1%}", delta_color="inverse")
+col4.metric("Avg Sentiment", f"{avg_sentiment:.2f}")
+
+st.divider()
+
+# model vs labels
+if abs(actual_risk - model_risk) < 0.1:
+    st.info(f"**Model Alignment:** Model confident in the historical trend for {selected_drug}.")
+else:
+    st.warning(f"**Model Divergence:** Model predicts a different risk level than labels suggested.")
 
 
 col1, col2, col3 = st.columns([1, 2, 1])
@@ -163,11 +172,11 @@ with col2:
     st.pyplot(fig_sent, use_container_width=True)
 
 # result text
-if likelihood > 0.5 or avg_sentiment < -0.3:
+if model_risk > 0.5 or avg_sentiment < -0.3:
     st.error(f"HIGH RISK: {selected_drug} shows high overall discontinuation risk with a {likelihood:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
-elif likelihood > 0.3 or avg_sentiment < -0.15:
+elif model_risk > 0.3 or avg_sentiment < -0.15:
     st.warning(f"MODERATE RISK: {selected_drug} shows moderate overall discontinuation risk with a {likelihood:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
-elif likelihood > 0.2 and avg_sentiment < 0.1:
+elif model_risk > 0.2 and avg_sentiment < 0.1:
     st.warning(f"MODERATE RISK: {selected_drug} shows moderate overall discontinuation risk with a {likelihood:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
 else:
     st.success(f"LOW RISK: {selected_drug} shows low overall discontinuation risk with a {likelihood:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
