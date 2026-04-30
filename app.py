@@ -167,7 +167,7 @@ if likelihood > 0.5 or avg_sentiment < -0.3:
     st.error(f"HIGH RISK: {selected_drug} shows high overall discontinuation risk with a {likelihood:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
 elif likelihood > 0.3 or avg_sentiment < -0.15:
     st.warning(f"MODERATE RISK: {selected_drug} shows moderate overall discontinuation risk with a {likelihood:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
-elif likelihood > 0.2 and avg_sentiment < 0:
+elif likelihood > 0.2 and avg_sentiment < 0.1:
     st.warning(f"MODERATE RISK: {selected_drug} shows moderate overall discontinuation risk with a {likelihood:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
 else:
     st.success(f"LOW RISK: {selected_drug} shows low overall discontinuation risk with a {likelihood:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
@@ -195,4 +195,24 @@ if st.button("Predict Discontinuation Risk"):
             st.error("Model predicts a HIGH likelihood of medication discontinuation")
         else:
             st.success("Model predicts a LOW likelihood of medication discontinuation.")
+
+# evaluation
+
+st.divider()
+st.header("Model Performance Evaluation")
+
+col_eval1, col_eval2, col_eval3 = st.columns([1, 2, 1])
+
+with col_eval2:
+    st.metric("Model F1-Score", f"{f1_val:.2f}")
+    
+    st.write("### Confusion Matrix")
+    fig_cm, ax_cm = plt.subplots(figsize=(5, 4))
+    sns.heatmap(cm_matrix, annot=True, fmt='d', cmap='Blues', ax=ax_cm,
+                xticklabels=['Continued', 'Discontinued'], 
+                yticklabels=['Continued', 'Discontinued'])
+    ax_cm.set_ylabel('Actual Status')
+    ax_cm.set_xlabel('Predicted Status')
+    plt.tight_layout()
+    st.pyplot(fig_cm, use_container_width=True)
         
