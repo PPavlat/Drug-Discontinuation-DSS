@@ -120,7 +120,7 @@ st.pyplot(fig_imp)
 
 
 st.divider()
-st.header("3. Drug-Specific Discontinuation & Sentiment Analysis")
+st.header("3. Drug-Specific Discontinuaton & Sentiment Analysis")
 drug_list = sorted(df['drugName'].unique())
 selected_drug = st.selectbox("Select a Drug to see Discontinuation Likelihood & Sentiment Results:", drug_list)
 
@@ -176,42 +176,4 @@ if st.button("Predict Discontinuation Risk"):
             st.error("Model predicts a HIGH likelihood of the patient stopping this medication.")
         else:
             st.success("Model predicts a LOW likelihood of discontinuation.")
-
-# evaluation
-st.divider()
-st.header("5. Model Performance Evaluation")
-
-col_acc1, col_acc2 = st.columns([1, 2])
-
-with col_acc1:
-    st.metric("Model F1-Score", f"{f1_val:.2f}")
-    st.write("""
-    **Why F1-Score?** In clinical datasets, 'Discontinued' cases are often much rarer than 'Continued' cases. 
-    The $F_1$-score is a more reliable metric than simple accuracy because it balances 
-    precision and recall, ensuring we aren't missing high-risk patients.
-    """)
-
-with col_acc2:
-    st.subheader("Confusion Matrix")
-    
-    fig_cm, ax_cm = plt.subplots(figsize=(6, 4))
-    sns.heatmap(cm_matrix, annot=True, fmt='d', cmap='Blues', ax=ax_cm,
-                xticklabels=['Continued', 'Discontinued'], 
-                yticklabels=['Continued', 'Discontinued'])
-    ax_cm.set_ylabel('Actual Status')
-    ax_cm.set_xlabel('Predicted Status')
-    st.pyplot(fig_cm)
-
-
-st.divider()
-st.header("6. Community Impact & Data Reliability")
-st.write("Metric: $Sentiment \times \ln(usefulCount + 1)$")
-
-
-df['sentiment'] = df['review'].apply(lambda x: analyzer.polarity_scores(x)['compound'])
-df['community_impact'] = df['sentiment'] * np.log1p(df['usefulCount'])
-
-st.subheader("Top 'Red Flag' Reviews (High Community Agreement)")
-st.write("These reviews have high negative sentiment and have been verified as 'Useful' by many other patients.")
-red_flags = df.sort_values(by='community_impact', ascending=True).head(5)
-st.table(red_flags[['drugName', 'condition', 'sentiment', 'usefulCount', 'community_impact']])
+        
