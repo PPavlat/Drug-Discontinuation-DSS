@@ -149,8 +149,8 @@ model_risk = drug_data['model_prob'].mean()
 
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Total Reviews", len(drug_data))
-col2.metric("Actual Risk (Rules)", f"{actual_risk:.1%}")
-col3.metric("Predicted Risk (AI)", f"{model_risk:.1%}", 
+col2.metric("Actual Risk (Observed)", f"{actual_risk:.1%}")
+col3.metric("Predicted Risk (Estimated)", f"{model_risk:.1%}", 
             delta=f"{model_risk - actual_risk:+.1%}", delta_color="inverse")
 col4.metric("Avg Sentiment", f"{avg_sentiment:.2f}")
 
