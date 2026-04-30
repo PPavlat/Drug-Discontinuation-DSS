@@ -101,12 +101,17 @@ df, tfidf_vec, rf_model, f1_val, cm_matrix = train_brain(raw_df)
 st.set_page_config(page_title="Drug DSS Dashboard", layout="wide")
 st.title("Medication Discontinuation Decision Support System (DSS)")
 
-st.header("Dataset Overview: # of Reviews")
-top_drugs = df['drugName'].value_counts().head(15)
-fig_counts, ax_counts = plt.subplots(figsize=(6, 3))
-top_drugs.plot(kind='bar', ax=ax_counts, color='teal')
-ax_counts.set_title("Top 15 Drugs by Number of Reviews")
-st.pyplot(fig_counts)
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col2:
+    top_drugs = df['drugName'].value_counts().head(15)
+    fig_counts, ax_counts = plt.subplots(figsize=(6, 3))
+    top_drugs.plot(kind='bar', ax=ax_counts, color='teal')
+    ax_counts.set_title("Top 15 Drugs by Number of Reviews", fontsize=10)
+    plt.xticks(rotation=45, ha='right', fontsize=8)
+    plt.yticks(fontsize=8)
+    plt.tight_layout()
+    st.pyplot(fig_counts, use_container_width=True)
 
 
 st.header("Global Predictors of Discontinuation")
@@ -114,9 +119,15 @@ importances = rf_model.feature_importances_
 feature_names = tfidf_vec.get_feature_names_out().tolist() + ['usefulCount']
 top_indices = np.argsort(importances)[-10:]
 
-fig_imp, ax_imp = plt.subplots(figsize=(5, 3))
-ax_imp.barh([feature_names[i] for i in top_indices], [importances[i] for i in top_indices], color='orange')
-st.pyplot(fig_imp)
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    fig_imp, ax_imp = plt.subplots(figsize=(5, 3))
+    ax_imp.barh([feature_names[i] for i in top_indices], 
+                [importances[i] for i in top_indices], 
+                color='orange')
+    ax_imp.tick_params(axis='both', which='major', labelsize=8)
+    plt.tight_layout()
+    st.pyplot(fig_imp, use_container_width=True)
 
 
 st.divider()
@@ -141,11 +152,15 @@ col3.metric("Discontinuation Risk", f"{likelihood:.1%}")
 col4.metric("Avg Sentiment Score", f"{avg_sentiment:.2f}")
 
 
-st.write(f"### Sentiment Distribution for {selected_drug}")
-fig_sent, ax_sent = plt.subplots(figsize=(6, 3))
-ax_sent.hist(drug_data['sentiment'], bins=20, color='mediumpurple', edgecolor='black')
-ax_sent.set_title(f"Sentiment Range: -1 (Negative) to +1 (Positive)")
-st.pyplot(fig_sent)
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col2:
+    st.write(f"### Sentiment Distribution for {selected_drug}")
+    fig_sent, ax_sent = plt.subplots(figsize=(6, 3))
+    ax_sent.hist(drug_data['sentiment'], bins=20, color='mediumpurple', edgecolor='black')
+    ax_sent.set_title(f"Sentiment Range: -1 (Negative) to +1 (Positive)")
+    plt.tight_layout()
+    st.pyplot(fig_sent, use_container_width=True)
 
 # result text
 if likelihood > 0.5 or avg_sentiment < -0.3:
