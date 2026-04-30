@@ -173,13 +173,13 @@ with col2:
 
 # result text
 if model_risk > 0.5 or avg_sentiment < -0.3:
-    st.error(f"HIGH RISK: {selected_drug} shows high overall discontinuation risk with a {likelihood:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
+    st.error(f"HIGH RISK: {selected_drug} shows high overall discontinuation risk with a {model_risk:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
 elif model_risk > 0.3 or avg_sentiment < -0.15:
-    st.warning(f"MODERATE RISK: {selected_drug} shows moderate overall discontinuation risk with a {likelihood:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
+    st.warning(f"MODERATE RISK: {selected_drug} shows moderate overall discontinuation risk with a {model_risk:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
 elif model_risk > 0.2 and avg_sentiment < 0.1:
-    st.warning(f"MODERATE RISK: {selected_drug} shows moderate overall discontinuation risk with a {likelihood:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
+    st.warning(f"MODERATE RISK: {selected_drug} shows moderate overall discontinuation risk with a {model_risk:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
 else:
-    st.success(f"LOW RISK: {selected_drug} shows low overall discontinuation risk with a {likelihood:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
+    st.success(f"LOW RISK: {selected_drug} shows low overall discontinuation risk with a {model_risk:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
 
 # custom review
 st.divider()
