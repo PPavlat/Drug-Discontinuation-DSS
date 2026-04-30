@@ -140,9 +140,11 @@ selected_drug = st.selectbox("Select a Drug:", drug_list)
 drug_data = df[df['drugName'] == selected_drug].copy()
 
 
+drug_data['sentiment'] = drug_data['review'].apply(lambda x: analyzer.polarity_scores(x)['compound'])
+avg_sentiment = drug_data['sentiment'].mean()
 actual_risk = drug_data['pred_discontinued'].mean()  
 model_risk = drug_data['model_prob'].mean()        
-avg_sentiment = drug_data['review'].apply(lambda x: analyzer.polarity_scores(x)['compound']).mean()
+
 
 
 col1, col2, col3, col4 = st.columns(4)
