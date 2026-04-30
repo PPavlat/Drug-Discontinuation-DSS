@@ -101,26 +101,26 @@ df, tfidf_vec, rf_model, f1_val, cm_matrix = train_brain(raw_df)
 st.set_page_config(page_title="Drug DSS Dashboard", layout="wide")
 st.title("Medication Discontinuation Decision Support System (DSS)")
 
-st.header("1. Dataset Overview: Review Popularity")
+st.header("Dataset Overview: # of Reviews")
 top_drugs = df['drugName'].value_counts().head(15)
-fig_counts, ax_counts = plt.subplots(figsize=(10, 5))
+fig_counts, ax_counts = plt.subplots(figsize=(6, 3))
 top_drugs.plot(kind='bar', ax=ax_counts, color='teal')
 ax_counts.set_title("Top 15 Drugs by Number of Reviews")
 st.pyplot(fig_counts)
 
 
-st.header("2. Global Predictors of Discontinuation")
+st.header("Global Predictors of Discontinuation")
 importances = rf_model.feature_importances_
 feature_names = tfidf_vec.get_feature_names_out().tolist() + ['usefulCount']
 top_indices = np.argsort(importances)[-10:]
 
-fig_imp, ax_imp = plt.subplots()
+fig_imp, ax_imp = plt.subplots(figsize=(5, 3))
 ax_imp.barh([feature_names[i] for i in top_indices], [importances[i] for i in top_indices], color='orange')
 st.pyplot(fig_imp)
 
 
 st.divider()
-st.header("3. Drug-Specific Discontinuaton & Sentiment Analysis")
+st.header("Drug-Specific Discontinuaton & Sentiment Analysis")
 drug_list = sorted(df['drugName'].unique())
 selected_drug = st.selectbox("Select a Drug to see Discontinuation Likelihood & Sentiment Results:", drug_list)
 
@@ -142,20 +142,24 @@ col4.metric("Avg Sentiment Score", f"{avg_sentiment:.2f}")
 
 
 st.write(f"### Sentiment Distribution for {selected_drug}")
-fig_sent, ax_sent = plt.subplots(figsize=(8, 3))
+fig_sent, ax_sent = plt.subplots(figsize=(6, 3))
 ax_sent.hist(drug_data['sentiment'], bins=20, color='mediumpurple', edgecolor='black')
 ax_sent.set_title(f"Sentiment Range: -1 (Negative) to +1 (Positive)")
 st.pyplot(fig_sent)
 
-# resultt text
-if likelihood > 0.3 or avg_sentiment < -0.1:
-    st.error(f"HIGH RISK: {selected_drug} shows a {likelihood:.1%} discontinuation rate and a negative sentiment trend.")
+# result text
+if likelihood > 0.5 or avg_sentiment < -0.3:
+    st.error(f"HIGH RISK: {selected_drug} shows high overall discontinuation risk with a {likelihood:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
+elif likelihood > 0.3 or avg_sentiment < -0.15:
+    st.warning(f"MODERATE RISK: {selected_drug} shows moderate overall discontinuation risk with a {likelihood:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
+elif likelihood > 0.2 and avg_sentiment < 0:
+    st.warning(f"MODERATE RISK: {selected_drug} shows moderate overall discontinuation risk with a {likelihood:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
 else:
-    st.success(f"LOW RISK: {selected_drug} shows high treatment adherence and positive patient sentiment.")
+    st.success(f"LOW RISK: {selected_drug} shows low overall discontinuation risk with a {likelihood:.1%} discontinuation rate and a {avg_sentiment:.2f} sentiment average.")
 
 # custom review
 st.divider()
-st.header("4. Bonus: Custom Review Risk Assessment")
+st.header("Custom Review Risk Assessment")
 user_text = st.text_area("Paste a patient review here to get a likelihood prediction:")
 user_useful = st.number_input("How many 'Useful' votes does this review have?", 0, 1000, 0)
 
@@ -173,7 +177,7 @@ if st.button("Predict Discontinuation Risk"):
         st.write(f"**Discontinuation Probability:** {prob:.1%}")
         
         if prob > 0.5:
-            st.error("Model predicts a HIGH likelihood of the patient stopping this medication.")
+            st.error("Model predicts a HIGH likelihood of medication discontinuation")
         else:
-            st.success("Model predicts a LOW likelihood of discontinuation.")
+            st.success("Model predicts a LOW likelihood of medication discontinuation.")
         
